@@ -1,0 +1,4 @@
+*.key
+*.pem
+# Project exclude paths
+/target/
