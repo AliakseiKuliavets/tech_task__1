@@ -10,6 +10,7 @@ import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,24 +21,21 @@ public class MemberServiceImpl implements MemberService {
     private final EntityManager entityManager;
     private final BookServiceImpl bookService;
 
-    public List<Member> getAllMembers() {
-        TypedQuery<Member> memberTypedQuery = entityManager.createQuery(
-                "SELECT m FROM Member m", Member.class);
-        return memberTypedQuery.getResultList();
-    }
-
     //  Implement a method that finds and returns the member who has read the oldest “Romance” genre book and who was
     //most recently registered on the platform.
     // Я мог схитрить и написать сразу в наглую под каким id у меня лежит книга, но я не хочу этого делать
     @Override
     public Member findMember() {
+        String genre = "Romance";
         List<Member> members = getAllMembers();
-        Book book = bookService.getOldestBookByGenre("Romance");
+        Book book = bookService.getOldestBookByGenre(genre);
         if (book == null) {
             throw new BookNotFoundExceptions(ErrorMessage.BOOK_NOT_FOUND);
         }
         long oldestBookId = book.getId();
-        Member memberWithLatestRegistration = null;
+        Member memberWithLatestRegistration = new Member();
+        memberWithLatestRegistration.setMembershipDate(
+                LocalDateTime.of(1900, 1, 1, 0, 0));
 
         for (Member member : members) {
             if (member.getBorrowedBooks().isEmpty()) {
@@ -45,8 +43,7 @@ public class MemberServiceImpl implements MemberService {
             }
             for (Book book1 : member.getBorrowedBooks()) {
                 if (book1.getId() == oldestBookId) {
-                    if (memberWithLatestRegistration == null ||
-                            member.getMembershipDate().isAfter(memberWithLatestRegistration.getMembershipDate())) {
+                    if (member.getMembershipDate().isAfter(memberWithLatestRegistration.getMembershipDate())) {
                         memberWithLatestRegistration = member;
                     }
                     break;
@@ -68,5 +65,13 @@ public class MemberServiceImpl implements MemberService {
             }
         }
         return membersNoBookAndFrom2023;
+    }
+
+    // этот метод можно было добавить в MemberService и использовать позже для других логик, но нельзя изменять файл
+    // these methods could be added to the MemberService and used later for other logic, but the file cannot be modified
+    public List<Member> getAllMembers() {
+        TypedQuery<Member> memberTypedQuery = entityManager.createQuery(
+                "SELECT m FROM Member m", Member.class);
+        return memberTypedQuery.getResultList();
     }
 }
